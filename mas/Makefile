@@ -24,7 +24,7 @@
 CXX = g++
 CXXFLAGS = -O3 -W -Wall -I..
 LFLAGS =
-SRCS = main.cc
+SRCS = main.cc  
 OBJS = $(SRCS:.cc=.o)
 SMODELSSRCS = smodels.cc stack.cc dcl.cc atomrule.cc read.cc \
 queue.cc timer.cc list.cc improve.cc program.cc api.cc stable.cc \
@@ -38,4 +38,4 @@ main: $(OBJS)
 	$(CXX) $(CXXFLAGS) -c $<
 
 clean:
-	main main.o
+	rm main main.o
