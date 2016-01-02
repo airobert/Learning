@@ -13,6 +13,8 @@
 #include "api.h"
 #include "atomrule.h"
 
+#include <ctime>
+
 
 // #include "enviroment.h"
 
@@ -94,9 +96,8 @@ condition get_post_condition (int n, int s, condition pre){
 
 action get_precondition_free_action (int domain, int size){
 	action a;
-	condition precondition;
-	a.pre = precondition; // only declare, do nothing else.
-	if(a.pre.begin() == a.pre.end()) cout<<"DONE";
+	// condition precondition;
+	// a.pre = precondition; // only declare, do nothing else.
 	a.post = get_pre_condition(domain, size);
 	return a;
 }
@@ -230,6 +231,17 @@ void print_stream (stream s){
 		}
 	cout<<endl;
 };
+
+int count_models (Smodels* smodels){
+  // Compute all stable models.
+  int model_counter = 0;
+  while (smodels->model ()){  // Returns 0 when there are no more models
+  	model_counter ++;
+    // smodels->printAnswer ();  // Prints the answer
+  }
+  // smodels->revert ();  // Forget everything that happened after init ().
+	return model_counter;
+}
 
 int count_and_print (Smodels* smodels){
   // Compute all stable models.
@@ -369,7 +381,7 @@ void encode_worlds(Api *api, world w_before, world w_after, int domain){
 
 
 	// smodels.program.print (); 
-  cout<<"I have just encoded the event"<<endl;
+  // cout<<"I have just encoded the event"<<endl;
 }
 
 
@@ -382,7 +394,7 @@ void setup_prop_vars(Api *api, int domain){
 }
 
 
-int test_smodel ()
+int action_learning (int domain, int actable)
 {
 	Smodels smodels;
   Api api (&smodels.program);
@@ -393,9 +405,9 @@ int test_smodel ()
 
 
 
-	int domain = 2;
-	int observable = 1;
-	int actable = 1;
+	// int domain = 10;
+	// // int observable = ;
+	// int actable = 5;
 
 	setup_prop_vars (&api, domain);
 
@@ -405,12 +417,12 @@ int test_smodel ()
 
   cout<<"The action is: "<<endl;
 	action act = get_precondition_free_action(domain, actable); 
-	print_action (act);
+	// print_action (act);
 
-  smodels.program.print ();  // You can display the program.
+  // smodels.program.print ();  // You can display the program.
 	// api.done (); 
   smodels.init (); 
-	count_and_print(&smodels); 
+	// count_and_print(&smodels); 
 
   // smodels.init ();  // Must be called before computing any models.
 
@@ -420,22 +432,23 @@ int test_smodel ()
   cout << "<<<<<<<<<<<<<<<<<  I am looping  >>>>>>>>>>>>>>>>>>"<<endl;
 	while (smodel_size != 1){
 		cout << "        <<------  This is the " << count << " iteration  ----->>     "<<endl;
-		print_action (act);
+		// print_action (act);
 		world w_before = get_before_world(domain);
 		world w_after = perform_action(act, w_before);
-		print_before_after (w_before, w_after);
+		// print_before_after (w_before, w_after);
 		
-		smodels.program.print (); 
+		// smodels.program.print (); 
 		// smodels.revert (); 
 
 		encode_worlds(&api, w_before, w_after, domain);
 		smodels.revert (); 
 
-		smodels.program.print (); 
+		// smodels.program.print (); 
 		// --- the models
 		// smodels.init (); 
 		// cout <<"debug 1"<<endl;
-		smodel_size = count_and_print(&smodels);
+		smodel_size = count_models (&smodels);
+		// smodel_size = count_and_print(&smodels);
 		cout << "There are/is " << smodel_size << " models"<<endl;
 		// smodel_size = 1; 
 		count ++;
@@ -445,7 +458,7 @@ int test_smodel ()
 
 	cout << "<<<<<<<<<<<<<<<<<  I am looping  >>>>>>>>>>>>>>>>>>"<<endl;
 
-	cout <<"****************  End of learning, I had " << count << " runs ***************" <<endl <<endl;
+	cout <<"****************  End of learning. You had " << count << " iternations ***************" <<endl;
   // a->setTrue ();
 
   // api.begin_rule (BASICRULE);
@@ -459,8 +472,10 @@ int test_smodel ()
 
   // this was changed!!!!
 	
-	cout<<"------"<<endl;
+	// cout<<"------"<<endl;
 
+	smodels.revert();
+	// count_and_print(&smodels);
   // b->computeFalse = true;  // compute [-b]
   // a->computeFalse = true;
 
@@ -474,16 +489,40 @@ int test_smodel ()
   // while (smodels.model ())  // Returns 0 when there are no more models
   //   smodels.printAnswer ();  // Prints the answer
 
-  if (smodels.model ())  // There is a model.
-    {
-      Atom *c = api.get_atom ("1+");
-      if (c->Bpos)
-	cout << c->atom_name () << " is in the stable model" << endl;
-      if (c->Bneg)
-	cout << c->atom_name () << " is not in the stable model" << endl;
-    }
 
-  return 0;
+	// action learnt
+	action learnt;  
+
+  if (smodels.model ())  // There is a model.
+  {
+  	// for each number, we get positive/negative, then unknown.
+  	for (int index = 1; index <= domain; index++){
+  		char sp[10];
+  		char sn[10];
+			Atom *ap;
+			Atom *an;
+
+		  sprintf(sp, "%d", index);
+		  sprintf(sn, "%d", index);
+			strcat(sp, "+");
+			strcat(sn, "-");
+
+			ap = api.get_atom (sp);
+			an = api.get_atom (sn);
+
+			if (ap->Bpos) learnt.post.push_back(index);
+			if (an->Bpos) learnt.post.push_back(index * (-1));
+
+  	}
+  }
+  cout<<"The action learnt is:"<<endl;
+  print_action(learnt);
+
+  cout<<"The original action is:"<<endl;
+  print_action(act);
+
+
+  return count;
 }
 
 
@@ -567,8 +606,8 @@ int test_example ()
   return 0;
 }
 
+void testings(){
 
-int main () {
 
 	// int x = 9;
 	// printf("%i\n", x);
@@ -623,13 +662,30 @@ int main () {
 	// a1.name = "pick_book";
 	// cout<<a1.name;
 
+
+}
+
+int main () {
+
 //*******************************************************************************
 //                test smodel
 //********************************************************************************
-  
+
+	  clock_t start;
+    double duration;
+
+    start = clock();
+
+    /* Your algorithm here */
+    int count = action_learning(30, 8);
+
+    duration = (clock() - start ) / (double) CLOCKS_PER_SEC;
+
+    cout<<"printf: "<< duration <<"seconds"<<'\n';
+ 
 
 	// test_example();
-	test_smodel();
+	// test_smodel();
 
 
 
