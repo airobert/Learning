@@ -329,25 +329,41 @@ void encode_worlds(Api *api, world w_before, world w_after, int domain){
 		// list<int>::iterator pos2 = find(l.begin(), l.end(), v * (-1));
 		if (pos2 != w_after.end()){
 		// 	if it's negation is there.
-			Atom *a = api->new_atom ();
+			
 			char s[10];
-
+			Atom *c;
 			if (*i > 0){
-			  sprintf(s, "%d", *i);
-				strcat(s, "+");
-				api->set_name (a, s); 
 
+			  sprintf(s, "%d", *i);
+				strcat(s, "-");
+			
 			} else {
 				sprintf(s, "%d", *i *(-1));
-				strcat(s, "-");
-				api->set_name (a, s); 
+				strcat(s, "+");
 
 			}
+			c = api->get_atom (s);
+			api->set_compute (c, true);
 
-			api->begin_rule (BASICRULE);
-		  api->add_head (a);
-		  api->end_rule ();
+
 		  // api->done ();  // After this you shouldn't change the rules.
+		}
+
+		for(list<int>::iterator i = w_after.begin(); i != w_after.end(); i++){
+			char s[10];
+			Atom *c;
+			if (*i > 0){
+
+			  sprintf(s, "%d", *i);
+				strcat(s, "-");
+			
+			} else {
+				sprintf(s, "%d", *i *(-1));
+				strcat(s, "+");
+
+			}
+			c = api->get_atom (s);
+			api->set_compute (c, false);		
 		}
 	}
 
@@ -361,7 +377,7 @@ void setup_prop_vars(Api *api, int domain){
 	for (int i = 1; i <= domain; i ++)
 	test_add_atom(api, i);
 
-  // api->done ();  // After this you shouldn't change the rules.
+  api->done ();  // After this you shouldn't change the rules.
 	cout<<"All propositional variables are initialized!" <<endl;
 }
 
@@ -377,11 +393,13 @@ int test_smodel ()
 
 
 
-	int domain = 4;
-	int observable = 2;
-	int actable = 2;
+	int domain = 2;
+	int observable = 1;
+	int actable = 1;
 
 	setup_prop_vars (&api, domain);
+
+
 
 	cout <<"************************  Now, let's learn it!  *****************************" << endl;
 
@@ -390,7 +408,9 @@ int test_smodel ()
 	print_action (act);
 
   smodels.program.print ();  // You can display the program.
+	// api.done (); 
   smodels.init (); 
+	count_and_print(&smodels); 
 
   // smodels.init ();  // Must be called before computing any models.
 
@@ -400,6 +420,7 @@ int test_smodel ()
   cout << "<<<<<<<<<<<<<<<<<  I am looping  >>>>>>>>>>>>>>>>>>"<<endl;
 	while (smodel_size != 1){
 		cout << "        <<------  This is the " << count << " iteration  ----->>     "<<endl;
+		print_action (act);
 		world w_before = get_before_world(domain);
 		world w_after = perform_action(act, w_before);
 		print_before_after (w_before, w_after);
@@ -415,11 +436,14 @@ int test_smodel ()
 		// smodels.init (); 
 		// cout <<"debug 1"<<endl;
 		smodel_size = count_and_print(&smodels);
-		cout << "There are " << smodel_size << " models"<<endl;
+		cout << "There are/is " << smodel_size << " models"<<endl;
 		// smodel_size = 1; 
 		count ++;
 	}
-	// cout << "<<<<<<<<<<<<<<<<<  I am looping  >>>>>>>>>>>>>>>>>>"<<endl;
+
+	if (smodel_size == 1) cout<< "  Congratulations!  \n"<<" Your agent learnt this action! "<<endl;
+
+	cout << "<<<<<<<<<<<<<<<<<  I am looping  >>>>>>>>>>>>>>>>>>"<<endl;
 
 	cout <<"****************  End of learning, I had " << count << " runs ***************" <<endl <<endl;
   // a->setTrue ();
@@ -604,8 +628,8 @@ int main () {
 //********************************************************************************
   
 
-	test_example();
-	// test_smodel();
+	// test_example();
+	test_smodel();
 
 
 
