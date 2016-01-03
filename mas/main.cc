@@ -232,6 +232,15 @@ void print_stream (stream s){
 	cout<<endl;
 };
 
+bool only_one_model (Smodels* smodels){
+
+	if (smodels->model ()){
+		if (not smodels->model())
+			return true;
+	}
+	return false;
+}
+
 int count_models (Smodels* smodels){
   // Compute all stable models.
   int model_counter = 0;
@@ -390,11 +399,11 @@ void setup_prop_vars(Api *api, int domain){
 	test_add_atom(api, i);
 
   api->done ();  // After this you shouldn't change the rules.
-	cout<<"All propositional variables are initialized!" <<endl;
+	// cout<<"All propositional variables are initialized!" <<endl;
 }
 
 
-int action_learning (int domain, int actable)
+int action_learning (int domain, int actable, action act)
 {
 	Smodels smodels;
   Api api (&smodels.program);
@@ -413,10 +422,10 @@ int action_learning (int domain, int actable)
 
 
 
-	cout <<"************************  Now, let's learn it!  *****************************" << endl;
+	// cout <<"************************  Now, let's learn it!  *****************************" << endl;
 
-  cout<<"The action is: "<<endl;
-	action act = get_precondition_free_action(domain, actable); 
+  // cout<<"The action is: "<<endl;
+	// action act = get_precondition_free_action(domain, actable); 
 	// print_action (act);
 
   // smodels.program.print ();  // You can display the program.
@@ -429,9 +438,9 @@ int action_learning (int domain, int actable)
 
 	int smodel_size = 0;
 	int count = 0;
-  cout << "<<<<<<<<<<<<<<<<<  I am looping  >>>>>>>>>>>>>>>>>>"<<endl;
+  // cout << "<<<<<<<<<<<<<<<<<  I am looping  >>>>>>>>>>>>>>>>>>"<<endl;
 	while (smodel_size != 1){
-		cout << "        <<------  This is the " << count << " iteration  ----->>     "<<endl;
+		// cout << "        <<------  This is the " << count << " iteration  ----->>     "<<endl;
 		// print_action (act);
 		world w_before = get_before_world(domain);
 		world w_after = perform_action(act, w_before);
@@ -447,18 +456,18 @@ int action_learning (int domain, int actable)
 		// --- the models
 		// smodels.init (); 
 		// cout <<"debug 1"<<endl;
-		smodel_size = count_models (&smodels);
+		// smodel_size = count_models (&smodels);
+		if (only_one_model(&smodels)) smodel_size = 1;
 		// smodel_size = count_and_print(&smodels);
-		cout << "There are/is " << smodel_size << " models"<<endl;
+		// cout << "There are/is " << smodel_size << " models"<<endl;
 		// smodel_size = 1; 
 		count ++;
 	}
 
-	if (smodel_size == 1) cout<< "  Congratulations!  \n"<<" Your agent learnt this action! "<<endl;
+	// if (smodel_size == 1) cout<< "  Congratulations!  \n"<<" Your agent learnt this action! "<<endl;
 
-	cout << "<<<<<<<<<<<<<<<<<  I am looping  >>>>>>>>>>>>>>>>>>"<<endl;
 
-	cout <<"****************  End of learning. You had " << count << " iternations ***************" <<endl;
+	// cout <<"****************  End of learning. You had " << count << " iternations ***************" <<endl;
   // a->setTrue ();
 
   // api.begin_rule (BASICRULE);
@@ -515,11 +524,11 @@ int action_learning (int domain, int actable)
 
   	}
   }
-  cout<<"The action learnt is:"<<endl;
-  print_action(learnt);
+  // cout<<"The action learnt is:"<<endl;
+  // print_action(learnt);
 
-  cout<<"The original action is:"<<endl;
-  print_action(act);
+  // cout<<"The original action is:"<<endl;
+  // print_action(act);
 
 
   return count;
@@ -665,30 +674,167 @@ void testings(){
 
 }
 
-int main () {
+// ----------------<  Evaluation 1  >--------------
 
-//*******************************************************************************
-//                test smodel
-//********************************************************************************
+struct effe_section
+{
+	int domain;
+	int section_max;
+	double average_time;
+	int iterations;
+	/* data */
+};
 
-	  clock_t start;
+
+effe_section effeciency_section_test(int domain, int min, int max, int repeat){
+
+
+	int iteration_acc = 0;
+ 	double time_acc = 0.0;
+
+  for (int i = 0; i < repeat; i ++){
+		int active = 0;
+  	while (active <= min || active > max){
+			active = (rand() % domain) + 1;
+		}
+
+		action act = get_precondition_free_action(domain, active); 
+  	
+
+  	clock_t start;
     double duration;
-
     start = clock();
 
-    /* Your algorithm here */
-    int count = action_learning(30, 8);
+    int count = action_learning(domain, active, act);
+    duration = (clock() - start ) / (double) CLOCKS_PER_SEC;
+    // cout<<"duration is: " << duration << endl;
+    time_acc += duration;
+    iteration_acc = iteration_acc + count; 
+  }
 
+  effe_section e;
+  e.domain = domain;
+  e.section_max = max;
+  e.average_time = time_acc / repeat;
+  e.iterations = iteration_acc / repeat;
+  return e;
+}
+
+
+list<effe_section> effeciency_all_sections (int domain, int step, int repeat){
+	list<effe_section> result;
+
+	for (int i = step; i <= domain; i += step){
+		effe_section e = effeciency_section_test(domain, i-step, i, repeat);
+		result.push_back(e);
+	}
+	return result;
+} 
+
+
+
+void test_print_sections (int range, int step, int repeat){
+
+	list<effe_section> result = effeciency_all_sections (range, step, repeat);
+
+	list<effe_section>::iterator i;
+	for(i = result.begin(); i != result.end(); i++){
+		cout<< "The domain is: " << i->domain
+		<< "\tThe max of this range is:" << i->section_max
+		<< "\tThe average time taken is: " << i->average_time 
+		<< "\tThe average N.iteration is: " << i->iterations <<endl;
+	}
+
+}
+
+
+// ----------------<  Evaluation 2  >--------------
+
+struct effe
+{
+	/* data */
+	int domain;
+	double average_time;
+	int iterations;
+};
+
+
+effe effeciency_random_test (int domain, int repeat) {
+	int active = (rand() % domain) + 1;
+ 	
+ 	int iteration_acc = 0;
+ 	double time_acc = 0.0;
+  
+  for (int i = 0; i < repeat; i ++){
+
+		action act = get_precondition_free_action(domain, active);
+
+  	clock_t start;
+    double duration;
+    start = clock();
+
+    int count = action_learning(domain, active, act);
     duration = (clock() - start ) / (double) CLOCKS_PER_SEC;
 
-    cout<<"printf: "<< duration <<"seconds"<<'\n';
- 
+    time_acc = time_acc + duration;
+    iteration_acc = iteration_acc + count; 
+  }
 
-	// test_example();
-	// test_smodel();
+  effe e;
+  e.domain = domain;
+  e.average_time = time_acc / repeat;
+  e.iterations = iteration_acc / repeat;
+  return e;
+
+}
+
+
+list<effe> effeciency_random_test_all (int range, int step, int repeat){
+	list<effe> result;
+
+	for (int i = step; i <= range; i += step){
+		effe e = effeciency_random_test(i, repeat);
+		result.push_back(e);
+	}
+	return result;
+} 
+
+
+void test_print_effe_all (int range, int step, int repeat){
+
+	list<effe> result = effeciency_random_test_all (range, step, repeat);
+
+	list<effe>::iterator i;
+	for(i = result.begin(); i != result.end(); i++){
+		cout<< "The domain is: " << i->domain
+		<< "\tThe average time taken is: " << i->average_time 
+		<< "\tThe average N.iteration is: " << i->iterations <<endl;
+	}
+
+}
 
 
 
+void eval1(int total){
+	int sections = 10;
+	for (int i = total/sections; i <= total ; i += total/sections){
+		cout<< " ------ " << "the domain is now :" << i <<" ------ " <<endl; 
+		test_print_sections (i, i/sections, 20);
+	}
+}
+
+void eval2 (int total){
+	test_print_effe_all (total, total/20, 20);
+}
+
+
+int main (int argc, char * argv[]) {
+
+	int total = atoi(argv[1]);
+	eval2(total);
+	
+	// int total = atoi(argv[1]);
+	// eval1(total);
 
   return 0;
 };
