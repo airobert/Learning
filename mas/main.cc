@@ -15,6 +15,9 @@
 
 #include <ctime>
 
+#include <bdd.h>
+
+
 
 // #include "enviroment.h"
 
@@ -29,6 +32,13 @@ struct action {
 	condition pre;
   condition post;
 } ;
+
+struct safe_action
+{
+	string name;
+	bdd pre;
+	condition post;
+};
 
 struct event
 {
@@ -75,10 +85,16 @@ world get_before_world (int domain){
 
 }
 
-condition get_post_condition (int n, int s, condition pre){
+condition get_post_condition (int n, int active, condition pre){
+	// we consider restricted precondition only.
+	// 
 	condition l;
-	// get a random length < n
-	while ((int)l.size() != s) {
+	// flip over the pre condition first
+	for (std::list<int>::iterator it = pre.begin(); it != pre.end(); it++){
+		l.push_back(*it *(-1));
+	}
+	
+	while ((int)l.size() != active) {
 		int v = (rand() % n) +1;
 		int sign = (rand() % 2) * 2 -1;
 		list<int>::iterator pos1 = find(l.begin(), l.end(), v); 
@@ -115,6 +131,13 @@ void print_action(action a){
 	print_condition(a.post);
 	cout<<"\n";
 };
+
+void print_safe_action (safe_action a){
+	cout << "The pre-codition in ROBDD is:" << endl;
+	cout << bddtable << a.pre << endl;
+	cout<<"\tThe post-condition is: ";
+	print_condition(a.post);
+}
 
 void print_world(world w){
 	print_condition(w);
@@ -207,6 +230,17 @@ stream generate_action_stream(action a, int size, int amount){
 	return s;
 };
 
+action get_full_action (int domain, int active, int demand){
+	if (active < demand) cout << "Demand too stict" <<endl;
+	action a;
+	condition precondition;
+	precondition = get_pre_condition(domain, demand);
+	a.pre = precondition;
+	condition postcondition;
+	postcondition = get_post_condition (domain, active, a.pre);
+	a.post = postcondition;
+	return a;
+}
 
 
 void print_before_after (world before, world after){
@@ -808,7 +842,7 @@ void test_print_effe_all (int range, int step, int repeat){
 	for(i = result.begin(); i != result.end(); i++){
 		cout<< "The domain is: " << i->domain
 		<< "\tThe average time taken is: " << i->average_time 
-		<< "\tThe average N.iteration is: " << i->iterations <<endl;
+		<< "\tThe average No.iteration is: " << i->iterations <<endl;
 	}
 
 }
@@ -828,13 +862,210 @@ void eval2 (int total){
 }
 
 
+// ---------------------- Action Learning with Pre-condition -----------
+
+
+
+
+
+// void test_bdd (){
+// 	bdd x,y,z;
+
+// 	bdd_init (1000, 100);
+// 	bdd_setvarnum (5);
+
+// 	x = bdd_ithvar (1);
+// 	cout<<"print x"<<endl;
+// 	bdd_printtable(x);
+// 	y = bdd_ithvar (2);
+// 	// z = bdd_addref(bdd_apply(x, y, bddop_and));
+// 	z = x & y;
+
+// 	cout << bddtable << z << endl;
+// 	bdd_printtable(z);
+// 	// bdd_delref (z);
+
+// 	bdd_printtable (bdd_not (z));
+// 	bdd_done();
+
+// }
+
+
+// bdd test_bdd2 (){
+// 	bdd x, y, z;
+// 	bdd a, b;
+
+// 	bdd_init (1000, 100);
+// 	bdd_setvarnum (100);
+
+// 	x = bdd_ithvar (0);
+// 	y = bdd_ithvar (1);
+// 	z = bdd_nithvar (1);
+	
+// 	// a = bdd_apply(x, y, bddop_or);
+// 	// b = bdd_apply(x, z, bddop_or);
+// 	a = x;
+// 	cout << "BDD before: a" << endl << bddtable << a << endl;
+// 	a = a & z;
+
+// 	// bdd c = bdd_apply(a, b, bddop_and);
+// 	cout << "BDD after: a" << endl << bddtable << a << endl;
+// 	// cout << "BDD: b" << endl << bddtable << b << endl;
+// 	// cout << "BDD: c" << endl << bddtable << c << endl;
+
+// 	return a;
+
+// }
+
+void print_bdd(bdd b){
+	bdd_printtable(b);
+}
+
+
+bdd encode_world_bdd (condition c){
+	// bdd_init (1000, 100);
+	// bdd_setvarnum (100);
+	// encode the pre-condition and return a BDD
+	// list<bdd> stack;
+	// cout << "encode preconditoin "<< endl;
+	// print_condition (c);
+
+	// bdd acc;
+  std::list<int>::iterator it = c.begin();
+
+  bdd init;
+	if (*it < 0){
+    init = bdd_nithvar((*it) *(-1));
+  	// cout<<*it<<endl;
+  	// print_bdd(init);
+
+  }else{
+  	init = bdd_ithvar(*it);
+  	// cout<<*it<<endl;
+  	// print_bdd(init);
+  }
+  // cout<<"------"<<endl;
+  it++;
+  // cout<<*it<<endl;
+
+  bdd b;
+	for (; it != c.end(); it++){	
+	  if (*it < 0){
+	  	// cout<<"what?"<<endl;
+	  	init = init & (bdd_nithvar(*it * (-1)));
+	  	
+	  }else{
+	  	b = bdd_ithvar(*it);
+	  	init = init & (bdd_nithvar(*it));
+	  }
+		// acc = acc & b;
+		// print_bdd(acc);
+	}
+	// bdd_done();
+	return init;
+}
+
+
+
+
+
+
+int full_action_learning (int domain, int actable, action act)
+{
+	Smodels smodels;
+  Api api (&smodels.program);
+
+	bdd_init (10000, 1000);
+	bdd_setvarnum (100000);
+
+  // You'll have to keep track of the atoms not remembered yourself
+  api.remember ();
+
+	setup_prop_vars (&api, domain);
+
+  smodels.init (); 
+
+	int smodel_size = 0;
+	int count = 0;
+	safe_action a;
+	a.pre = bddfalse;
+
+  // cout << "<<<<<<<<<<<<<<<<<  I am looping  >>>>>>>>>>>>>>>>>>"<<endl;
+	while (smodel_size != 1){
+		cout << "        <<------  This is the " << count << " iteration  ----->>     "<<endl;
+		// print_action (act);
+		world w_before = get_before_world(domain);
+		if (action_validity(act, w_before)){
+			world w_after = perform_action(act, w_before);
+			print_before_after(w_before, w_after);
+			encode_worlds(&api, w_before, w_after, domain);
+			smodels.revert (); 
+			if (only_one_model(&smodels)) smodel_size = 1;	
+	// then learn the world ----- valid
+			// bdd w = encode_world_bdd(w_before);
+			// cout<<" world is encoded as: "<<endl;
+			// print_bdd(w);
+			// a.pre = (a.pre) | w;
+			// cout<<"update BDD"<<endl;
+			// print_bdd(a.pre);
+			// cout<<"----"<<endl;
+		}
+
+		count ++;
+	}
+
+
+	smodels.revert();
+	// count_and_print(&smodels); 
+
+  if (smodels.model ())  // There is a model.
+  {
+  	// for each number, we get positive/negative, then unknown.
+  	for (int index = 1; index <= domain; index++){
+  		char sp[10];
+  		char sn[10];
+			Atom *ap;
+			Atom *an;
+
+		  sprintf(sp, "%d", index);
+		  sprintf(sn, "%d", index);
+			strcat(sp, "+");
+			strcat(sn, "-");
+
+			ap = api.get_atom (sp);
+			an = api.get_atom (sn);
+
+			if (ap->Bpos) a.post.push_back(index);
+			if (an->Bpos) a.post.push_back(index * (-1));
+
+  	}
+  }
+
+  return count;
+}
+
+
+
+
+
 int main (int argc, char * argv[]) {
 
-	int total = atoi(argv[1]);
-	eval2(total);
+	// int total = atoi(argv[1]);
+	// eval2(total);
 	
 	// int total = atoi(argv[1]);
 	// eval1(total);
+
+
+	int total = atoi(argv[1]);
+	action act = get_full_action(total, 4, 2);
+	print_action(act);
+	cout << "finished learning in ( " << full_action_learning(total, 4, act) << " steps";
+	// test_bdd2();
+
+
+
+	// testings();
 
   return 0;
 };
