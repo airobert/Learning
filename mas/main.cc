@@ -437,7 +437,7 @@ void setup_prop_vars(Api *api, int domain){
 }
 
 
-int action_learning (int domain, int actable, action act)
+int action_learning (int domain, action act)
 {
 	Smodels smodels;
   Api api (&smodels.program);
@@ -739,7 +739,7 @@ effe_section effeciency_section_test(int domain, int min, int max, int repeat){
     double duration;
     start = clock();
 
-    int count = action_learning(domain, active, act);
+    int count = action_learning(domain, act);
     duration = (clock() - start ) / (double) CLOCKS_PER_SEC;
     // cout<<"duration is: " << duration << endl;
     time_acc += duration;
@@ -807,7 +807,7 @@ effe effeciency_random_test (int domain, int repeat) {
     double duration;
     start = clock();
 
-    int count = action_learning(domain, active, act);
+    int count = action_learning(domain, act);
     duration = (clock() - start ) / (double) CLOCKS_PER_SEC;
 
     time_acc = time_acc + duration;
@@ -930,33 +930,17 @@ bdd encode_world_bdd (condition c){
 	// cout << "encode preconditoin "<< endl;
 	// print_condition (c);
 
-	// bdd acc;
-  std::list<int>::iterator it = c.begin();
-
-  bdd init;
-	if (*it < 0){
-    init = bdd_nithvar((*it) *(-1));
-  	// cout<<*it<<endl;
-  	// print_bdd(init);
-
-  }else{
-  	init = bdd_ithvar(*it);
-  	// cout<<*it<<endl;
-  	// print_bdd(init);
-  }
-  // cout<<"------"<<endl;
-  it++;
-  // cout<<*it<<endl;
-
   bdd b;
-	for (; it != c.end(); it++){	
+  bdd init = bddtrue;
+	for (std::list<int>::iterator it = c.begin(); it != c.end(); it++){	
 	  if (*it < 0){
 	  	// cout<<"what?"<<endl;
-	  	init = init & (bdd_nithvar(*it * (-1)));
+	  	b = bdd_nithvar(*it * (-1));
+	  	init = init & (b);
 	  	
 	  }else{
 	  	b = bdd_ithvar(*it);
-	  	init = init & (bdd_nithvar(*it));
+	  	init = init & (b);
 	  }
 		// acc = acc & b;
 		// print_bdd(acc);
@@ -967,16 +951,10 @@ bdd encode_world_bdd (condition c){
 
 
 
-
-
-
-int full_action_learning (int domain, int actable, action act)
+int full_action_learning (int domain, action act)
 {
 	Smodels smodels;
   Api api (&smodels.program);
-
-	bdd_init (10000, 1000);
-	bdd_setvarnum (100000);
 
   // You'll have to keep track of the atoms not remembered yourself
   api.remember ();
@@ -992,20 +970,26 @@ int full_action_learning (int domain, int actable, action act)
 
   // cout << "<<<<<<<<<<<<<<<<<  I am looping  >>>>>>>>>>>>>>>>>>"<<endl;
 	while (smodel_size != 1){
-		cout << "        <<------  This is the " << count << " iteration  ----->>     "<<endl;
+		// cout << "        <<------  This is the " << count << " iteration  ----->>     "<<endl;
 		// print_action (act);
-		world w_before = get_before_world(domain);
+		action tmp;
+		tmp.post = act.pre;
+		world w_before = perform_action(tmp, get_before_world(domain));
+
 		if (action_validity(act, w_before)){
 			world w_after = perform_action(act, w_before);
-			print_before_after(w_before, w_after);
+			// print_before_after(w_before, w_after);
 			encode_worlds(&api, w_before, w_after, domain);
 			smodels.revert (); 
 			if (only_one_model(&smodels)) smodel_size = 1;	
 	// then learn the world ----- valid
-			// bdd w = encode_world_bdd(w_before);
+			bdd w = encode_world_bdd(w_before);
 			// cout<<" world is encoded as: "<<endl;
 			// print_bdd(w);
-			// a.pre = (a.pre) | w;
+			bdd  p = (a.pre) | w; 
+			// print_bdd(p);
+			a.pre = p;
+			// w.bdd_delref();
 			// cout<<"update BDD"<<endl;
 			// print_bdd(a.pre);
 			// cout<<"----"<<endl;
@@ -1040,12 +1024,105 @@ int full_action_learning (int domain, int actable, action act)
 
   	}
   }
+ 
+  // learning completed
+  // cout<<"The precondition is:" <<endl;
+  // print_bdd(a.pre);
+  // cout<<"The postcondition is:"<<endl;
+  // print_condition(a.post);
 
   return count;
 }
 
 
 
+
+
+effe full_effeciency_random_test (int domain, int repeat, bool balanced) {
+	int active = (rand() % domain) + 1;
+	int demand;
+	if (balanced){
+		demand = active;
+	}else{
+		demand = (rand() % active) + 1;
+	}
+	
+	// pre = post
+ 	
+ 	int iteration_acc = 0;
+ 	double time_acc = 0.0;
+  
+  for (int i = 0; i < repeat; i ++){
+		action act = get_full_action(domain, active, demand);
+
+  	clock_t start;
+    double duration;
+    start = clock();
+
+    int count = full_action_learning(domain, act);
+    duration = (clock() - start ) / (double) CLOCKS_PER_SEC;
+
+    time_acc = time_acc + duration;
+    iteration_acc = iteration_acc + count; 
+  }
+
+  effe e;
+  e.domain = domain;
+  e.average_time = time_acc / repeat;
+  e.iterations = iteration_acc / repeat;
+  return e;
+}
+
+
+list<effe> full_effeciency_random_test_all (int range, int step, int repeat, bool balanced){
+	list<effe> result;
+
+	for (int i = step; i <= range; i += step){
+		effe e = full_effeciency_random_test(i, repeat, balanced);
+		result.push_back(e);
+	}
+	return result;
+} 
+
+
+void full_test_print_effe_all (int range, int step, int repeat, bool balanced){
+
+	list<effe> result = full_effeciency_random_test_all (range, step, repeat, balanced);
+
+	list<effe>::iterator i;
+	for(i = result.begin(); i != result.end(); i++){
+		cout<< "The domain is: " << i->domain
+		<< "\tThe average time taken is: " << i->average_time 
+		<< "\tThe average No.iteration is: " << i->iterations <<endl;
+	}
+
+}
+
+void eval3 (int total){
+// balanced
+	bdd_init (10000, 1000);
+	bdd_setvarnum (total*(total/10));
+
+	full_test_print_effe_all (total, total/20, 20, true);
+	bdd_done();
+}
+
+void eval4 (int total){
+// not balanced
+	bdd_init (10000, 1000);
+	bdd_setvarnum (total*(total/10));
+
+	full_test_print_effe_all (total, total/20, 20, false);
+	bdd_done();
+}
+
+
+// void full_action_test(){
+// 	action act = get_full_action(10, 4, 2);
+// 	print_action(act);
+// 	cout << "finished learning in ( " << full_action_learning(10, act) << " steps";
+// 	// test_bdd2();
+// }
 
 
 int main (int argc, char * argv[]) {
@@ -1057,12 +1134,19 @@ int main (int argc, char * argv[]) {
 	// eval1(total);
 
 
-	int total = atoi(argv[1]);
-	action act = get_full_action(total, 4, 2);
-	print_action(act);
-	cout << "finished learning in ( " << full_action_learning(total, 4, act) << " steps";
-	// test_bdd2();
+	// int total = atoi(argv[1]);
+	//pre = post
 
+	// full_action_test();
+
+	int total = atoi(argv[1]);
+	
+	cout<<"-- Balanced Action Learning with Pre-condition --"<<endl;
+	eval3(total);
+	cout<<"-- Imbalanced Action Learning with Pre-condition --"<<endl;
+	eval4(total);
+	// action act = get_full_action(20, 4, 4);
+	// print_action(act);
 
 
 	// testings();
