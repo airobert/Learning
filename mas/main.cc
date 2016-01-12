@@ -864,6 +864,11 @@ void eval2 (int total){
 
 // ---------------------- Action Learning with Pre-condition -----------
 
+void vset_bdd_gbchandler(int pre, bddGbcStat *s) {
+  // cout<<"test"<<endl;
+}
+
+
 
 
 
@@ -1038,14 +1043,8 @@ int full_action_learning (int domain, action act)
 
 
 
-effe full_effeciency_random_test (int domain, int repeat, bool balanced) {
-	int active = (rand() % domain) + 1;
-	int demand;
-	if (balanced){
-		demand = active;
-	}else{
-		demand = (rand() % active) + 1;
-	}
+effe full_effeciency_random_test (int domain, int repeat, int active, int demand) {
+	
 	
 	// pre = post
  	
@@ -1078,11 +1077,52 @@ list<effe> full_effeciency_random_test_all (int range, int step, int repeat, boo
 	list<effe> result;
 
 	for (int i = step; i <= range; i += step){
-		effe e = full_effeciency_random_test(i, repeat, balanced);
+		int domain  = i;
+		int active = (rand() % domain) + 1;
+
+		int demand;
+		if (balanced){
+			demand = active;
+		}else{
+			demand = (rand() % active) + 1;
+		}
+		effe e = full_effeciency_random_test(domain, repeat, active, demand);
 		result.push_back(e);
 	}
 	return result;
 } 
+
+
+void full_scalability_random_test_all (){ // it is imbalanced by default ----the scalibility table -- final table
+	list<effe> result;
+	int repeat  = 20;
+	for (int i = 50; i <= 100 ; i += 50){
+		effe e;
+		e.domain  = i;
+
+		for (int j = 0; j < repeat; j++){
+			int domain  = i;
+			int active = (rand() % domain) + 1;
+			int demand = (rand() % active) + 1;
+			effe tmp = full_effeciency_random_test(domain, 1, active, demand);
+			e.average_time += tmp.average_time;
+			e.iterations += tmp.iterations;
+		}
+		cout << "Now I am at :" << i <<endl;
+		
+		e.average_time = e.average_time/repeat;
+		e.iterations = e.iterations /repeat;
+
+		result.push_back(e);
+	}
+
+	for(list<effe>::iterator i = result.begin(); i != result.end(); i++){
+		cout<< "The domain is: " << i->domain
+		<< "\tThe average time taken is: " << i->average_time 
+		<< "\tThe average No.iteration is: " << i->iterations <<endl;
+	}
+} 
+
 
 
 void full_test_print_effe_all (int range, int step, int repeat, bool balanced){
@@ -1095,27 +1135,43 @@ void full_test_print_effe_all (int range, int step, int repeat, bool balanced){
 		<< "\tThe average time taken is: " << i->average_time 
 		<< "\tThe average No.iteration is: " << i->iterations <<endl;
 	}
-
 }
 
 void eval3 (int total){
 // balanced
-	bdd_init (10000, 1000);
+	bdd_init (total*total/10, total);
 	bdd_setvarnum (total*(total/10));
+	// bdd_gbc_hook(vset_bdd_gbchandler);
+	// --- 
+	bdd_gbc_hook(vset_bdd_gbchandler);
 
-	full_test_print_effe_all (total, total/20, 20, true);
+	full_test_print_effe_all (total, total/20, 100, true);
 	bdd_done();
 }
 
 void eval4 (int total){
 // not balanced
-	bdd_init (10000, 1000);
+	bdd_init (total*total/10, total);
 	bdd_setvarnum (total*(total/10));
-
-	full_test_print_effe_all (total, total/20, 20, false);
+	bdd_gbc_hook(vset_bdd_gbchandler);
+	full_test_print_effe_all (total, total/20, 100, false);
 	bdd_done();
 }
 
+
+void eval5 (){
+// not balanced
+	int total = 1000;
+	bdd_init (total*total/10, total);
+	bdd_setvarnum (total*(total/10));
+	bdd_gbc_hook(vset_bdd_gbchandler);
+	for (int total = 100; total <= 1000; total += 100){
+		full_test_print_effe_all (total, total/10, 20, false);
+		cout<<"<<<<<<<<<<<--------------------------"<<endl;
+	}
+	
+	bdd_done();
+}
 
 // void full_action_test(){
 // 	action act = get_full_action(10, 4, 2);
@@ -1123,6 +1179,110 @@ void eval4 (int total){
 // 	cout << "finished learning in ( " << full_action_learning(10, act) << " steps";
 // 	// test_bdd2();
 // }
+
+
+//-----imbalanced section tests ---------
+
+struct effe_imb_section
+{
+	int domain;
+	int demand;
+	int section_min;
+	int section_max;
+	double average_time;
+	int iterations;
+	/* data */
+};
+
+
+effe_imb_section effeciency_section_test_imb (int domain, int demand, int min, int max, int repeat){
+
+
+	int iteration_acc = 0;
+ 	double time_acc = 0.0;
+
+  for (int i = 0; i < repeat; i ++){
+		int active = 0;
+		// if min == max then ....
+		if (min == max) active = min;
+		else {
+			while (active <= min || active > max){
+				active = (rand() % domain) + 1;
+			}		
+		}
+  	
+
+		action act = get_full_action(domain, active, demand);
+
+  	clock_t start;
+    double duration;
+    start = clock();
+
+    int count = full_action_learning(domain, act);
+    duration = (clock() - start ) / (double) CLOCKS_PER_SEC;
+
+    time_acc = time_acc + duration;
+    iteration_acc = iteration_acc + count; 
+  }
+
+  effe_imb_section e;
+  e.domain = domain;
+  e.demand = demand;
+  e.section_min = min;
+  e.section_max = max;
+  e.average_time = time_acc / repeat;
+  e.iterations = iteration_acc / repeat;
+  return e;
+}
+
+
+list<effe_imb_section> effeciency_all_sections_imb (int domain, int step, int repeat){
+	list<effe_imb_section> result;
+	for (int demand = step; demand <= domain; demand += step){
+		for (int max = demand ; max <= domain; max += step){
+				effe_imb_section e;
+			if (max == demand) 
+				e = effeciency_section_test_imb(domain, demand, max, max, repeat);
+			else 
+				e = effeciency_section_test_imb(domain, demand, max-step, max, repeat);
+
+		result.push_back(e);
+		}
+	}
+	return result;
+} 
+
+
+
+void test_print_sections_imb (int range, int step, int repeat){
+
+	list<effe_imb_section> result = effeciency_all_sections_imb (range, step, repeat);
+
+	list<effe_imb_section>::iterator i;
+	for(i = result.begin(); i != result.end(); i++){
+		cout<< "The domain is: " << i->domain
+		<< "\tThe demand is: " << i->demand 
+		<< "\tthis range is:" << i->section_min
+		<< "\t to \t" << i->section_max
+		<< "\tThe average time: " << i->average_time 
+		<< "\tThe average N.iteration: " << i->iterations <<endl;
+	}
+
+}
+
+void test5(){
+	//colorful
+	test_print_sections_imb(100, 10, 20);
+}
+
+
+
+//-------scalability test----------
+
+void test6(){
+
+
+}
 
 
 int main (int argc, char * argv[]) {
@@ -1133,23 +1293,20 @@ int main (int argc, char * argv[]) {
 	// int total = atoi(argv[1]);
 	// eval1(total);
 
-
-	// int total = atoi(argv[1]);
-	//pre = post
-
-	// full_action_test();
-
 	int total = atoi(argv[1]);
 	
-	cout<<"-- Balanced Action Learning with Pre-condition --"<<endl;
-	eval3(total);
-	cout<<"-- Imbalanced Action Learning with Pre-condition --"<<endl;
-	eval4(total);
-	// action act = get_full_action(20, 4, 4);
-	// print_action(act);
+	// cout<<"-- Balanced Action Learning with Pre-condition --"<<endl;
+	// eval3(total);
+	// cout<<"-- Imbalanced Action Learning with Pre-condition --"<<endl;
+	// eval4(total);
 
+//------colorful --- 
+	// test5();
+	//--scalability 
+	// eval5();
 
-	// testings();
+	full_scalability_random_test_all ();
+
 
   return 0;
 };
