@@ -558,12 +558,18 @@ int action_learning (int domain, action act)
 
   	}
   }
-  // cout<<"The action learnt is:"<<endl;
-  // print_action(learnt);
+  cout<<"The action learnt is:"<<endl;
+  print_action(learnt);
 
-  // cout<<"The original action is:"<<endl;
-  // print_action(act);
-
+  cout<<"The original action is:"<<endl;
+  print_action(act);
+  // list<int>::iterator i = act.post.begin();
+  // list<int>::iterator j = learnt.post.begin();
+  // while(i != act.post.end() && j != learnt.post.end()){
+  // 	if (*i != *j) cout<<"<<<<<<<<<<< error in learning!!! >>>>>>>>>>>>";
+  // 	i++;
+  // 	j++;
+  // }
 
   return count;
 }
@@ -571,142 +577,142 @@ int action_learning (int domain, action act)
 
 
 
-int test_example ()
-{
-  Smodels smodels;
-  Api api (&smodels.program);
+// int test_example ()
+// {
+//   Smodels smodels;
+//   Api api (&smodels.program);
 
-  // You'll have to keep track of the atoms not remembered yourself
-  api.remember ();
+//   // You'll have to keep track of the atoms not remembered yourself
+//   api.remember ();
 
-  Atom *a = api.new_atom ();
-  Atom *b = api.new_atom ();
-  api.set_name (a, "a");      // You can give the atoms names.
-  api.set_name (b, "b");
+//   Atom *a = api.new_atom ();
+//   Atom *b = api.new_atom ();
+//   api.set_name (a, "a");      // You can give the atoms names.
+//   api.set_name (b, "b");
 
-  api.begin_rule (BASICRULE);
-  api.add_head (a);
-  api.add_body (b, false);  // Add "not b" to the body.
-  api.end_rule ();
+//   api.begin_rule (BASICRULE);
+//   api.add_head (a);
+//   api.add_body (b, false);  // Add "not b" to the body.
+//   api.end_rule ();
 
-  api.begin_rule(CHOICERULE);
-  api.add_head(a);
-  api.add_head(b);
-  api.end_rule();
+//   api.begin_rule(CHOICERULE);
+//   api.add_head(a);
+//   api.add_head(b);
+//   api.end_rule();
 
-  // api.begin_rule (BASICRULE);
-  // api.add_head (b);
-  // api.add_body (a, true);
-  // api.end_rule ();
+//   // api.begin_rule (BASICRULE);
+//   // api.add_head (b);
+//   // api.add_body (a, true);
+//   // api.end_rule ();
 
-  // You would add the compute statement here, e.g.,
-  // api.set_compute (a, true) demands that a is in the model.
+//   // You would add the compute statement here, e.g.,
+//   // api.set_compute (a, true) demands that a is in the model.
 
-  // api.done ();  // After this you shouldn't change the rules.
+//   // api.done ();  // After this you shouldn't change the rules.
 
-  smodels.program.print ();  // You can display the program.
+//   smodels.program.print ();  // You can display the program.
   
-  smodels.init ();  // Must be called before computing any models.
+//   smodels.init ();  // Must be called before computing any models.
 
-  // Compute all stable models.
-  while (smodels.model ())  // Returns 0 when there are no more models
-    smodels.printAnswer ();  // Prints the answer
+//   // Compute all stable models.
+//   while (smodels.model ())  // Returns 0 when there are no more models
+//     smodels.printAnswer ();  // Prints the answer
 
-  // Of course, you can inspect the atoms directly.
+//   // Of course, you can inspect the atoms directly.
 
-  cout<<"-----------------\n";
+//   cout<<"-----------------\n";
 
 
-  smodels.revert ();  // Forget everything that happened after init ().
-  // this was changed!!!!
+//   smodels.revert ();  // Forget everything that happened after init ().
+//   // this was changed!!!!
 
 
 
   
-	// api.done (); 
-  // Atom *b2 = api.new_atom ();
-  // api.set_name (b2, "b");
-  Atom *c = api.get_atom ("b");
-  api.set_compute (c, true);
-  // Alternatively, api.set_compute (b, false).
-  // api.reset_compute (Atom *, bool) removes atoms from the compute
-  // statement.
-	smodels.program.print (); 
+// 	// api.done (); 
+//   // Atom *b2 = api.new_atom ();
+//   // api.set_name (b2, "b");
+//   Atom *c = api.get_atom ("b");
+//   api.set_compute (c, true);
+//   // Alternatively, api.set_compute (b, false).
+//   // api.reset_compute (Atom *, bool) removes atoms from the compute
+//   // statement.
+// 	smodels.program.print (); 
 
-  while (smodels.model ())  // Returns 0 when there are no more models
-    smodels.printAnswer ();  // Prints the answer
-
-
-  if (smodels.model ())  // There is a model.
-    {
-      Atom *c = api.get_atom ("a");
-      if (c->Bpos)
-	cout << c->atom_name () << " is in the stable model" << endl;
-      if (c->Bneg)
-	cout << c->atom_name () << " is not in the stable model" << endl;
-    }
-
-  return 0;
-}
-
-void testings(){
+//   while (smodels.model ())  // Returns 0 when there are no more models
+//     smodels.printAnswer ();  // Prints the answer
 
 
-	// int x = 9;
-	// printf("%i\n", x);
-	int myints[] = {16, 15, 14, 12};
-	cout << "the list is: ";
+//   if (smodels.model ())  // There is a model.
+//     {
+//       Atom *c = api.get_atom ("a");
+//       if (c->Bpos)
+// 	cout << c->atom_name () << " is in the stable model" << endl;
+//       if (c->Bneg)
+// 	cout << c->atom_name () << " is not in the stable model" << endl;
+//     }
 
-	for (int i = 0; i <= 3; i++){
-		cout << myints[i] << " ";
-	}
+//   return 0;
+// }
 
-	int random1;
-	srand (time(NULL)); /* initialize random seed: */
-	random1 = rand() % 10;
-	printf("%s %d\n", "\nthe number is: ", random1);
-	if (random1 > 4) puts ("Greater than 4");
-
-	// get an action 
-	action a;
-	a.pre = get_pre_condition(10, 4);
-	a.post = get_post_condition(10, 4, a.pre);
+// void testings(){
 
 
-  cout << "the pre-codition is: ";
-  print_condition(a.pre);
+// 	// int x = 9;
+// 	// printf("%i\n", x);
+// 	int myints[] = {16, 15, 14, 12};
+// 	cout << "the list is: ";
 
-  // list<int>::iterator i_post;
-  cout << "\nthe post-codition is: ";
-  print_condition(a.post);
+// 	for (int i = 0; i <= 3; i++){
+// 		cout << myints[i] << " ";
+// 	}
 
-  //get a before world
+// 	int random1;
+// 	srand (time(NULL)); /* initialize random seed: */
+// 	random1 = rand() % 10;
+// 	printf("%s %d\n", "\nthe number is: ", random1);
+// 	if (random1 > 4) puts ("Greater than 4");
 
-  world w_before = get_pre_condition(10, 10);
+// 	// get an action 
+// 	action a;
+// 	a.pre = get_pre_condition(10, 4);
+// 	a.post = get_post_condition(10, 4, a.pre);
+
+
+//   cout << "the pre-codition is: ";
+//   print_condition(a.pre);
+
+//   // list<int>::iterator i_post;
+//   cout << "\nthe post-codition is: ";
+//   print_condition(a.post);
+
+//   //get a before world
+
+//   world w_before = get_pre_condition(10, 10);
 	
 
-  if (action_validity(a, w_before)) cout<<"this action is valid!";
-  else {
-  	cout << "The world does not satisfy the Pre-condition of the action.";
-  	cout <<"Pre-condition is: ";
-  	print_condition(a.pre); 
-  	cout <<"But the world is: ";
-  	print_world(w_before);
-  };
+//   if (action_validity(a, w_before)) cout<<"this action is valid!";
+//   else {
+//   	cout << "The world does not satisfy the Pre-condition of the action.";
+//   	cout <<"Pre-condition is: ";
+//   	print_condition(a.pre); 
+//   	cout <<"But the world is: ";
+//   	print_world(w_before);
+//   };
 
-  world w0_before = generate_world_from_action(a, 10);
+//   world w0_before = generate_world_from_action(a, 10);
 
-	world w0_after = perform_action(a, w0_before);
+// 	world w0_after = perform_action(a, w0_before);
 
-	stream s = generate_action_stream(a,10,4);
-	print_stream(s);
+// 	stream s = generate_action_stream(a,10,4);
+// 	print_stream(s);
 
-	action a1;
-	// a1.name = "pick_book";
-	// cout<<a1.name;
+// 	action a1;
+// 	// a1.name = "pick_book";
+// 	// cout<<a1.name;
 
 
-}
+// }
 
 // ----------------<  Evaluation 1  >--------------
 
@@ -1277,13 +1283,6 @@ void test5(){
 
 
 
-//-------scalability test----------
-
-void test6(){
-
-
-}
-
 
 int main (int argc, char * argv[]) {
 
@@ -1296,7 +1295,7 @@ int main (int argc, char * argv[]) {
 	int total = atoi(argv[1]);
 	
 	// cout<<"-- Balanced Action Learning with Pre-condition --"<<endl;
-	// eval3(total);
+	eval3(total);
 	// cout<<"-- Imbalanced Action Learning with Pre-condition --"<<endl;
 	// eval4(total);
 
@@ -1305,7 +1304,7 @@ int main (int argc, char * argv[]) {
 	//--scalability 
 	// eval5();
 
-	full_scalability_random_test_all ();
+	// full_scalability_random_test_all ();
 
 
   return 0;
