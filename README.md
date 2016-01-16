@@ -10,9 +10,13 @@ The number of postcondition is named active;
 To use:
 
 1) You need BuDDy.
+
 2) Compile Smodels as described.
+
 2) Go to the mas directory and type:
-make main
+
+	make main
+	
 3) For precondition free action learning, type:
 
 	./main 1 100 (for a domain of 100 propositions)
