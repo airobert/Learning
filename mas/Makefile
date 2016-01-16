@@ -30,12 +30,14 @@ SMODELSSRCS = smodels.cc stack.cc dcl.cc atomrule.cc read.cc \
 queue.cc timer.cc list.cc improve.cc program.cc api.cc stable.cc \
 tree.cc denant.cc restart.cc
 SMODELSOBJS = $(SMODELSSRCS:%.cc=../%.o)
+BDDDIR = /usr/local/include
+BDDDIR2 = /usr/include
 
 main: $(OBJS)
-	$(CXX) $(LFLAGS) -o main main.o $(SMODELSOBJS)
+	$(CXX) $(LFLAGS) -I$(BDDDIR)$   -L$(BDDDIR2)$   -o main main.o $(SMODELSOBJS) -lbdd
 
 %.o: %.cc
-	$(CXX) $(CXXFLAGS) -c $<
+	$(CXX) $(CXXFLAGS)  -c $<
 
 clean:
 	rm main main.o
