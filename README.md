@@ -16,13 +16,15 @@ make main
 3) For precondition free action learning, type:
 
 	./main 1 100 (for a domain of 100 propositions)
-or  
+or
+
 	./main 1 1000 (for a domain of 1000 propositions)
 
 4) For conditional action learning, type:
 
 	./main 2 100 (for a domain of 100 propositions)
 or  
+
 	./main 2 1000 (for a domain of 1000 propositions)
 
 and for demand-oriented testings, type:
