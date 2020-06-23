@@ -1,6 +1,6 @@
 Dynamic Epistemic Learning Course
 
-Robert White: ai.robert.wangshuai@gmail.com
+Shuai Wang @ ILLC, UvA
 
 In case of confusion:
 
